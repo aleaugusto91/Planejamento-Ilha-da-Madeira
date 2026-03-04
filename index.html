@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<title>Planejamento do Apartamento</title>
+
+<style>
+
+body{
+font-family:Arial;
+background:#f3f4f6;
+margin:0;
+padding:40px;
+}
+
+.container{
+max-width:1200px;
+margin:auto;
+background:white;
+padding:30px;
+border-radius:10px;
+box-shadow:0 10px 30px rgba(0,0,0,0.08);
+}
+
+.header{
+display:flex;
+justify-content:space-between;
+align-items:center;
+margin-bottom:20px;
+}
+
+h1{
+margin:0;
+}
+
+.gear{
+cursor:pointer;
+font-size:22px;
+}
+
+.summary{
+display:flex;
+gap:15px;
+margin-bottom:20px;
+}
+
+.card{
+flex:1;
+background:#f9fafb;
+padding:15px;
+border-radius:8px;
+}
+
+.card h3{
+margin:0;
+font-size:13px;
+color:#666;
+}
+
+.card strong{
+font-size:22px;
+}
+
+form{
+display:grid;
+grid-template-columns:2fr 1fr 1fr 1fr 1fr 1fr;
+gap:10px;
+margin-bottom:20px;
+}
+
+input,select,textarea{
+padding:8px;
+border-radius:6px;
+border:1px solid #ddd;
+}
+
+button{
+background:#2563eb;
+color:white;
+border:none;
+padding:10px;
+border-radius:6px;
+cursor:pointer;
+}
+
+table{
+width:100%;
+border-collapse:collapse;
+}
+
+th,td{
+padding:10px;
+border-bottom:1px solid #eee;
+text-align:left;
+}
+
+.status-pago{color:#16a34a;font-weight:bold;}
+.status-pagando{color:#2563eb;font-weight:bold;}
+.status-pendente{color:#b58900;font-weight:bold;}
+
+.modal{
+position:fixed;
+top:0;
+left:0;
+width:100%;
+height:100%;
+background:rgba(0,0,0,0.4);
+display:none;
+align-items:center;
+justify-content:center;
+}
+
+.modal-content{
+background:white;
+padding:25px;
+width:500px;
+border-radius:10px;
+}
+
+.config-section{
+margin-bottom:20px;
+}
+
+.config-section h4{
+margin-bottom:8px;
+}
+
+.list-edit{
+display:flex;
+gap:5px;
+margin-bottom:5px;
+}
+
+.list-edit input{
+flex:1;
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<div class="header">
+<h1 id="titulo">Planejamento do Apartamento</h1>
+<div class="gear" onclick="abrirConfig()">⚙️</div>
+</div>
+
+<div class="summary">
+<div class="card"><h3>Total Planejado</h3><strong id="total">R$0</strong></div>
+<div class="card"><h3>Pago</h3><strong id="pago">R$0</strong></div>
+<div class="card"><h3>Pagando</h3><strong id="pagando">R$0</strong></div>
+<div class="card"><h3>Pendente</h3><strong id="pendente">R$0</strong></div>
+</div>
+
+<form id="form">
+
+<input id="item" placeholder="Item ou serviço">
+
+<select id="categoria"></select>
+
+<select id="tipo"></select>
+
+<select id="responsavel" multiple></select>
+
+<select id="status"></select>
+
+<input id="valor" type="number" placeholder="Valor">
+
+<button type="submit">Adicionar</button>
+
+</form>
+
+<textarea id="obs" placeholder="Observações"></textarea>
+
+<table>
+
+<thead>
+<tr>
+<th>Item</th>
+<th>Categoria</th>
+<th>Tipo</th>
+<th>Responsável</th>
+<th>Status</th>
+<th>Valor</th>
+<th></th>
+</tr>
+</thead>
+
+<tbody id="lista"></tbody>
+
+</table>
+
+</div>
+
+<div class="modal" id="configModal">
+
+<div class="modal-content">
+
+<h3>Configurações</h3>
+
+<div class="config-section">
+
+<h4>Título da página</h4>
+
+<input id="configTitulo">
+
+</div>
+
+<div class="config-section">
+
+<h4>Responsáveis</h4>
+
+<div id="configResponsaveis"></div>
+<button onclick="addConfig('responsaveis')">Adicionar</button>
+
+</div>
+
+<div class="config-section">
+
+<h4>Status</h4>
+
+<div id="configStatus"></div>
+<button onclick="addConfig('status')">Adicionar</button>
+
+</div>
+
+<div class="config-section">
+
+<h4>Categorias</h4>
+
+<div id="configCategorias"></div>
+<button onclick="addConfig('categorias')">Adicionar</button>
+
+</div>
+
+<div class="config-section">
+
+<h4>Tipos</h4>
+
+<div id="configTipos"></div>
+<button onclick="addConfig('tipos')">Adicionar</button>
+
+</div>
+
+<button onclick="salvarConfig()">Salvar</button>
+<button onclick="fecharConfig()">Fechar</button>
+
+</div>
+
+</div>
+
+<script>
+
+let dados=JSON.parse(localStorage.getItem("aptoApp"))||{
+titulo:"Planejamento do Apartamento",
+responsaveis:["Alexandre","Esposa"],
+status:["Pendente orçamento","Pagando","Pago"],
+categorias:["Móveis","Eletrodomésticos","Obra","Decoração"],
+tipos:["Produto","Serviço"],
+itens:[]
+}
+
+function salvar(){
+localStorage.setItem("aptoApp",JSON.stringify(dados))
+}
+
+function carregarSelect(id,lista){
+
+let el=document.getElementById(id)
+el.innerHTML=""
+
+lista.forEach(v=>{
+let o=document.createElement("option")
+o.value=v
+o.innerText=v
+el.appendChild(o)
+})
+
+}
+
+function atualizarSelects(){
+carregarSelect("categoria",dados.categorias)
+carregarSelect("tipo",dados.tipos)
+carregarSelect("responsavel",dados.responsaveis)
+carregarSelect("status",dados.status)
+}
+
+function render(){
+
+let total=0,pago=0,pagando=0,pend=0
+
+let html=""
+
+dados.itens.forEach((g,i)=>{
+
+total+=g.valor
+
+if(g.status==="Pago")pago+=g.valor
+else if(g.status==="Pagando")pagando+=g.valor
+else pend+=g.valor
+
+let cls=g.status==="Pago"?"status-pago":
+g.status==="Pagando"?"status-pagando":"status-pendente"
+
+html+=`<tr>
+<td>${g.item}</td>
+<td>${g.categoria}</td>
+<td>${g.tipo}</td>
+<td>${g.responsavel.join(", ")}</td>
+<td class="${cls}">${g.status}</td>
+<td>R$ ${g.valor.toLocaleString()}</td>
+<td><button onclick="remover(${i})">X</button></td>
+</tr>`
+
+})
+
+document.getElementById("lista").innerHTML=html
+
+document.getElementById("total").innerText="R$ "+total.toLocaleString()
+document.getElementById("pago").innerText="R$ "+pago.toLocaleString()
+document.getElementById("pagando").innerText="R$ "+pagando.toLocaleString()
+document.getElementById("pendente").innerText="R$ "+pend.toLocaleString()
+
+document.getElementById("titulo").innerText=dados.titulo
+document.title=dados.titulo
+
+}
+
+document.getElementById("form").onsubmit=e=>{
+
+e.preventDefault()
+
+let res=[...document.getElementById("responsavel").selectedOptions].map(o=>o.value)
+
+dados.itens.push({
+
+item:item.value,
+categoria:categoria.value,
+tipo:tipo.value,
+responsavel:res,
+status:status.value,
+valor:Number(valor.value),
+obs:obs.value
+
+})
+
+salvar()
+render()
+form.reset()
+
+}
+
+function remover(i){
+dados.itens.splice(i,1)
+salvar()
+render()
+}
+
+function abrirConfig(){
+
+document.getElementById("configModal").style.display="flex"
+
+configTitulo.value=dados.titulo
+
+renderConfig("configResponsaveis",dados.responsaveis)
+renderConfig("configStatus",dados.status)
+renderConfig("configCategorias",dados.categorias)
+renderConfig("configTipos",dados.tipos)
+
+}
+
+function fecharConfig(){
+configModal.style.display="none"
+}
+
+function renderConfig(id,lista){
+
+let el=document.getElementById(id)
+
+el.innerHTML=""
+
+lista.forEach((v,i)=>{
+
+let div=document.createElement("div")
+div.className="list-edit"
+
+div.innerHTML=`
+<input value="${v}" onchange="editar('${id}',${i},this.value)">
+<button onclick="removerConfig('${id}',${i})">X</button>
+`
+
+el.appendChild(div)
+
+})
+
+}
+
+function editar(id,i,val){
+
+let map={
+configResponsaveis:"responsaveis",
+configStatus:"status",
+configCategorias:"categorias",
+configTipos:"tipos"
+}
+
+dados[map[id]][i]=val
+
+}
+
+function removerConfig(id,i){
+
+let map={
+configResponsaveis:"responsaveis",
+configStatus:"status",
+configCategorias:"categorias",
+configTipos:"tipos"
+}
+
+dados[map[id]].splice(i,1)
+
+abrirConfig()
+
+}
+
+function addConfig(tipo){
+
+dados[tipo].push("Novo")
+
+abrirConfig()
+
+}
+
+function salvarConfig(){
+
+dados.titulo=configTitulo.value
+
+salvar()
+
+atualizarSelects()
+
+render()
+
+fecharConfig()
+
+}
+
+atualizarSelects()
+render()
+
+</script>
+
+</body>
+</html>
